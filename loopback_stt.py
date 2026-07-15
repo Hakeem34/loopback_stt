@@ -239,8 +239,15 @@ def record_split_stereo(output_path, duration_seconds=10, loopback_device_index=
                 if duration_seconds and duration_seconds > 0 and (time.time() - start_time) >= duration_seconds:
                     break
 
-                loopback_data = loopback_stream.read(frames_per_buffer, exception_on_overflow=False)
-                mic_data = mic_stream.read(frames_per_buffer, exception_on_overflow=False)
+                mic_available = mic_stream.get_read_available() if hasattr(mic_stream, "get_read_available") else 0
+                loopback_available = loopback_stream.get_read_available() if hasattr(loopback_stream, "get_read_available") else 0
+                if mic_available <= 0 or loopback_available <= 0:
+                    time.sleep(0.01)
+                    continue
+
+                frames_to_read = min(frames_per_buffer, mic_available, loopback_available)
+                loopback_data = loopback_stream.read(frames_to_read, exception_on_overflow=False)
+                mic_data = mic_stream.read(frames_to_read, exception_on_overflow=False)
                 if not mic_data or not loopback_data:
                     continue
 
@@ -283,7 +290,7 @@ def record_loopback(output_path, duration_seconds=10, device_index=None, channel
     """
     pa_obj = pyaudio.PyAudio()
     stop_event = threading.Event()
-    pipeline = setup_kotoba_whisper()
+#   pipeline = setup_kotoba_whisper()
 
     try:
         device_info = resolve_loopback_device(pa_obj, requested_index=device_index)
@@ -335,7 +342,13 @@ def record_loopback(output_path, duration_seconds=10, device_index=None, channel
                 if duration_seconds and duration_seconds > 0 and (time.time() - start_time) >= duration_seconds:
                     break
 
-                data = stream.read(frames_per_buffer, exception_on_overflow=False)
+                available = stream.get_read_available() if hasattr(stream, "get_read_available") else 0
+                if available <= 0:
+                    time.sleep(0.01)
+                    continue
+
+                frames_to_read = min(frames_per_buffer, available)
+                data = stream.read(frames_to_read, exception_on_overflow=False)
                 if not data:
                     continue
                 try:
