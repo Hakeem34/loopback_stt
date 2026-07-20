@@ -320,6 +320,7 @@ def main() -> None:
     parser.add_argument("--speech-pad-ms", type=int, default=30, help="Padding around detected speech in milliseconds")
     parser.add_argument("--tts-kotoba", action="store_true", help="Use Kotoba Whisper for TTS instead of Silero VAD")
     parser.add_argument("--tts-ollama", action="store_true", help="Use Ollama(Gemma4:e2b) for TTS instead of Silero VAD")
+    parser.add_argument("--keep", action="store_true", help="Keep the intermediate audio file")
     args = parser.parse_args()
 
     output_folder = Path(args.output_dir) if args.output_dir else Path(args.input_mp3).parent / f"{Path(args.input_mp3).stem}_wav"
@@ -359,6 +360,8 @@ def main() -> None:
                     mirisecond = int((segment.start - second) * 10)
                     output_text.write(f"[{segment.channel}][{second:04d}.{mirisecond}] : {segment.text}\n")
                     output_text.flush()  # Flush after each write to ensure immediate writing to disk
+                    if not args.keep:
+                        segment.file_path.unlink()  # Delete the segment file after processing
 
         if args.tts_kotoba:
             pipe = setup_kotoba_whisper()
@@ -372,6 +375,8 @@ def main() -> None:
                     mirisecond = int((segment.start - second) * 10)
                     output_text.write(f"[{segment.channel}][{second:04d}.{mirisecond}] : {segment.text}\n")
                     output_text.flush()  # Flush after each write to ensure immediate writing to disk
+                    if not args.keep:
+                        segment.file_path.unlink()  # Delete the segment file after processing
 
     for output_path in output_paths:
         print(output_path)
