@@ -318,8 +318,8 @@ def main() -> None:
     parser.add_argument("--min-speech-duration-ms", type=int, default=250, help="Minimum speech duration in milliseconds")
     parser.add_argument("--min-silence-duration-ms", type=int, default=300, help="Minimum silence duration in milliseconds")
     parser.add_argument("--speech-pad-ms", type=int, default=30, help="Padding around detected speech in milliseconds")
-    parser.add_argument("--tts-kotoba", action="store_true", help="Use Kotoba Whisper for TTS instead of Silero VAD")
-    parser.add_argument("--tts-ollama", action="store_true", help="Use Ollama(Gemma4:e2b) for TTS instead of Silero VAD")
+    parser.add_argument("--stt-kotoba", action="store_true", help="Use Kotoba Whisper for TTS instead of Silero VAD")
+    parser.add_argument("--stt-ollama", action="store_true", help="Use Ollama(Gemma4:e2b) for TTS instead of Silero VAD")
     parser.add_argument("--keep", action="store_true", help="Keep the intermediate audio file")
     args = parser.parse_args()
 
@@ -350,7 +350,7 @@ def main() -> None:
             channel += 1
 
         sorted_segments = sorted(g_segments, key=lambda s: (s.start, s.end, s.channel))
-        if args.tts_ollama:
+        if args.stt_ollama:
             output_text_path = args.input_mp3.replace(".mp3", "_transcription_ollama.txt").replace(".wav", "_transcription.txt")
             with open(output_text_path, "w", encoding="utf-8") as output_text:
                 for segment in sorted_segments:
@@ -363,7 +363,7 @@ def main() -> None:
                     if not args.keep:
                         segment.file_path.unlink()  # Delete the segment file after processing
 
-        if args.tts_kotoba:
+        if args.stt_kotoba:
             pipe = setup_kotoba_whisper()
             output_text_path = args.input_mp3.replace(".mp3", "_transcription_kotoba.txt").replace(".wav", "_transcription.txt")
             with open(output_text_path, "w", encoding="utf-8") as output_text:
