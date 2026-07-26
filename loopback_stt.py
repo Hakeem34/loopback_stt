@@ -7,6 +7,7 @@ import datetime
 import threading
 import msvcrt
 from wsgiref import headers
+import winsound
 
 import numpy as np
 import subprocess
@@ -105,6 +106,15 @@ def esc_watcher(stop_event):
                 stop_event.set()
                 break
         time.sleep(0.1)
+
+
+def play_recording_start_beep():
+    """Play a single Windows system warning sound once when recording starts."""
+    try:
+        winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+    except Exception as exc:
+        print(f"Warning sound could not be played: {exc}")
+
 
 def resolve_loopback_device(pa_obj, requested_index=None):
     """Resolve the loopback device to capture playback audio."""
@@ -234,6 +244,7 @@ def record_split_stereo(output_path, duration_seconds=10, loopback_device_index=
 
         print(f"Recording split stereo to {mp3_path}. Press ESC to stop.")
         start_time = time.time()
+        beep_once = True
         try:
             while not stop_event.is_set():
                 if duration_seconds and duration_seconds > 0 and (time.time() - start_time) >= duration_seconds:
@@ -242,6 +253,9 @@ def record_split_stereo(output_path, duration_seconds=10, loopback_device_index=
                 mic_available = mic_stream.get_read_available() if hasattr(mic_stream, "get_read_available") else 0
                 loopback_available = loopback_stream.get_read_available() if hasattr(loopback_stream, "get_read_available") else 0
                 if mic_available <= 0 or loopback_available <= 0:
+                    if beep_once:
+                        play_recording_start_beep()
+                        beep_once = False
                     time.sleep(0.01)
                     continue
 
@@ -335,6 +349,7 @@ def record_loopback(output_path, duration_seconds=10, device_index=None, channel
         watcher_thread.start()
 
         print(f"Recording and encoding to {mp3_path}. Press ESC to stop.")
+        beep_once = True
         start_time = time.time()
         try:
             while not stop_event.is_set():
@@ -344,6 +359,9 @@ def record_loopback(output_path, duration_seconds=10, device_index=None, channel
 
                 available = stream.get_read_available() if hasattr(stream, "get_read_available") else 0
                 if available <= 0:
+                    if beep_once:
+                        play_recording_start_beep()
+                        beep_once = False
                     time.sleep(0.01)
                     continue
 
