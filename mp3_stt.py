@@ -248,7 +248,7 @@ def convert_mp3_to_wav(
 
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-def speach_to_text_by_ollama(wav_file):
+def speech_to_text_by_ollama(wav_file):
     """Send WAV bytes to Ollama API and return the transcribed text."""
     # Convert WAV bytes to base64
     with open(wav_file, "rb") as f:
@@ -273,6 +273,53 @@ def speach_to_text_by_ollama(wav_file):
     result = response.json()
     print(result['message']['content'])
     return result['message']['content']
+
+import base64
+import json
+import requests
+
+
+OPENAI_COMPAT_URL = "http://localhost:11434/v1/chat/completions"
+def speech_to_text_by_openai(wav_file):
+    """WAVファイルをOpenAI互換エンドポイントへ送信して文字起こしする"""
+    with open(wav_file, "rb") as f:
+        wav_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = {
+#       "model": "gemma4:e2b",
+#       "model": "gemma4:e4b",
+        "model": "gemma4:12b",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "音声を文字起こししてください。もし有効な音声データを判断できなかった場合は、\"---\"とだけ回答してください。"
+                    },
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": wav_base64,
+                            "format": "wav"
+                        }
+                    }
+                ]
+            }
+        ],
+        "options": {"num_ctx": 32768},
+        "stream": False
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(OPENAI_COMPAT_URL, headers=headers, data=json.dumps(payload))
+    result = response.json()
+    
+    # レスポンス構造もOpenAI仕様 (choices[0].message.content) に変わる
+    content = result['choices'][0]['message']['content']
+    print(content)
+    return content
+
 
 def setup_kotoba_whisper():
     """Set up the Kotoba Whisper model."""
@@ -354,7 +401,8 @@ def main() -> None:
             output_text_path = args.input_mp3.replace(".mp3", "_transcription_ollama.txt").replace(".wav", "_transcription.txt")
             with open(output_text_path, "w", encoding="utf-8") as output_text:
                 for segment in sorted_segments:
-                    text = speach_to_text_by_ollama(segment.file_path)
+#                    text = speach_to_text_by_ollama(segment.file_path)
+                    text = speech_to_text_by_openai(segment.file_path)
                     segment.text = text
                     second = int(segment.start)
                     mirisecond = int((segment.start - second) * 10)
