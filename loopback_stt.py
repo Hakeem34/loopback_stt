@@ -201,7 +201,6 @@ def record_split_stereo(output_path, duration_seconds=10, loopback_device_index=
         print(f"Detected channel counts: mic={mic_channels}, loopback={loopback_channels}")
         buffer_duration_seconds = 0.02
         frames_per_buffer = max(1, int(common_rate * buffer_duration_seconds))
-        target_frames = frames_per_buffer
 
         mic_stream = pa_obj.open(
             format=pyaudio.paInt16,
@@ -267,8 +266,9 @@ def record_split_stereo(output_path, duration_seconds=10, loopback_device_index=
 
                 mic_mono = downmix_to_mono_bytes(mic_data, mic_channels)
                 loopback_mono = downmix_to_mono_bytes(loopback_data, loopback_channels)
-                left_bytes = resample_mono_bytes(mic_mono, mic_rate, common_rate, target_frames)
-                right_bytes = resample_mono_bytes(loopback_mono, loopback_rate, common_rate, target_frames)
+                target_frames = min(len(mic_mono) // 2, len(loopback_mono) // 2)
+                left_bytes = resample_mono_bytes(mic_mono, common_rate, common_rate, target_frames)
+                right_bytes = resample_mono_bytes(loopback_mono, common_rate, common_rate, target_frames)
                 count = min(len(left_bytes) // 2, len(right_bytes) // 2)
                 if count <= 0:
                     continue
