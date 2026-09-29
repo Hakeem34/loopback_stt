@@ -1,0 +1,21 @@
+〇環境変数
+OLLAMA_HOST = 0.0.0.0:11435
+にする
+
+〇Ollamaの設定
+Expose Ollama to the networkのチェックを外す
+
+〇Pythonのファイアウォール設定（例）
+Disable-NetFirewallRule -Name 'TCP Query User{GUID}C:\users\XXXXX\appdata\local\programs\python\python314\python.exe'
+
+〇ollama_proxy.pyを実行
+python ollama_proxy.py
+2026-09-29 11:06:01,637 INFO proxy listening on http://0.0.0.0:11434 -> http://127.0.0.1:11435
+
+
+
+※Requestの内容については、
+OLLAMA_DEBUG_LOG_REQUESTS = 1
+に設定することで保存される
+
+
